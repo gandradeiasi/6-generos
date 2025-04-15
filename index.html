@@ -289,6 +289,8 @@
         let artistsData = {};
         let genresSet = new Set();
         let genreArtistsMap = {};
+        let totalTracks = 0;
+        let totalArtists = 0;
         
         // Autenticação Spotify
         function authorizeSpotify() {
@@ -335,9 +337,51 @@
         
         // Buscar músicas salvas do usuário
         function fetchSavedTracks(accessToken, offset = 0) {
-            updateProgress(10, `Carregando músicas salvas (${offset} de ???)...`);
-            
             const limit = 50;
+            
+            // Se é a primeira chamada, obter primeiro o total de músicas
+            if (offset === 0) {
+                updateProgress(5, `Iniciando carregamento das músicas salvas...`);
+                
+                fetch(`https://api.spotify.com/v1/me/tracks?limit=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            localStorage.removeItem('spotify_access_token');
+                            loginContainer.style.display = 'flex';
+                            mainContent.style.display = 'none';
+                            throw new Error('Token expirado. Faça login novamente.');
+                        }
+                        throw new Error('Erro ao buscar músicas salvas');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    totalTracks = data.total;
+                    fetchTracksBatch(accessToken, offset);
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    updateProgress(100, `Erro: ${error.message}`);
+                });
+            } else {
+                fetchTracksBatch(accessToken, offset);
+            }
+        }
+        
+        // Buscar lote de músicas
+        function fetchTracksBatch(accessToken, offset) {
+            const limit = 50;
+            
+            updateProgress(
+                Math.min(25, (offset / totalTracks) * 25),
+                `Carregando músicas salvas (${offset} de ${totalTracks})...`
+            );
+            
             fetch(`https://api.spotify.com/v1/me/tracks?limit=${limit}&offset=${offset}`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
@@ -368,8 +412,11 @@
                 
                 savedTracks = savedTracks.concat(tracks);
                 
-                const progress = Math.min(25, (offset / (data.total + 1)) * 25);
-                updateProgress(progress, `Carregando músicas salvas (${offset + tracks.length} de ${data.total})...`);
+                const progress = Math.min(25, (offset + tracks.length) / totalTracks * 25);
+                updateProgress(
+                    progress,
+                    `Carregando músicas salvas (${offset + tracks.length} de ${totalTracks})...`
+                );
                 
                 if (data.next) {
                     fetchSavedTracks(accessToken, offset + limit);
@@ -405,6 +452,9 @@
             });
             
             artistsData = Object.fromEntries(uniqueArtists);
+            totalArtists = uniqueArtists.size;
+            
+            updateProgress(30, `Processados ${totalArtists} artistas únicos...`);
             
             const artistIds = Array.from(uniqueArtists.keys());
             fetchArtistsGenres(accessToken, artistIds, 0);
@@ -421,8 +471,11 @@
                 return;
             }
             
-            const progress = 25 + (startIdx / artistIds.length) * 50;
-            updateProgress(progress, `Buscando gêneros dos artistas (${startIdx} de ${artistIds.length})...`);
+            const progress = 30 + ((startIdx / artistIds.length) * 60);
+            updateProgress(
+                progress,
+                `Buscando gêneros dos artistas (${startIdx} de ${totalArtists})...`
+            );
             
             fetch(`https://api.spotify.com/v1/artists?ids=${batch.join(',')}`, {
                 headers: {
@@ -454,6 +507,12 @@
                     }
                 });
                 
+                const newProgress = 30 + ((endIdx / artistIds.length) * 60);
+                updateProgress(
+                    newProgress,
+                    `Buscando gêneros dos artistas (${endIdx} de ${totalArtists})...`
+                );
+                
                 fetchArtistsGenres(accessToken, artistIds, endIdx);
             })
             .catch(error => {
@@ -464,7 +523,7 @@
         
         // Processar gêneros e exibir na interface
         function processGenres() {
-            updateProgress(90, 'Processando dados...');
+            updateProgress(90, `Processando ${genresSet.size} gêneros encontrados...`);
             
             const genresArray = Array.from(genresSet);
             let selectedGenres = [];
@@ -492,12 +551,12 @@
                 genresContainer.appendChild(genreCard);
             });
             
-            updateProgress(100, 'Dados carregados com sucesso!');
+            updateProgress(100, `Dados carregados com sucesso! ${totalTracks} músicas, ${totalArtists} artistas, ${genresSet.size} gêneros`);
             
-            // Esconder barra de progresso após 2 segundos
+            // Esconder barra de progresso após 3 segundos
             setTimeout(() => {
                 document.querySelector('.progress-container').style.display = 'none';
-            }, 2000);
+            }, 3000);
         }
         
         // Exibir artistas por gênero
