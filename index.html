@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Gêneros Explorer</title>
+    <style>
+        :root {
+            --spotify-green: #1DB954;
+            --spotify-black: #191414;
+            --spotify-white: #FFFFFF;
+            --spotify-gray: #535353;
+            --spotify-light-gray: #B3B3B3;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Circular', Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: var(--spotify-black);
+            color: var(--spotify-white);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            width: 180px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+        }
+        
+        .btn {
+            background-color: var(--spotify-green);
+            color: var(--spotify-white);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            background-color: #1ed760;
+            transform: scale(1.05);
+        }
+        
+        #main-content {
+            display: none;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+            background-color: var(--spotify-gray);
+            border-radius: 10px;
+            padding: 5px;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background-color: var(--spotify-green);
+            width: 0;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: var(--spotify-light-gray);
+        }
+        
+        .genres-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .genre-card {
+            background: linear-gradient(135deg, #404040, #282828);
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .genre-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #505050, #323232);
+        }
+        
+        .genre-name {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            text-transform: capitalize;
+        }
+        
+        .artists-list {
+            display: none;
+            margin-top: 30px;
+            background-color: #282828;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+        }
+        
+        .artists-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .artists-header h2 {
+            text-transform: capitalize;
+        }
+        
+        .close-btn {
+            background-color: transparent;
+            color: var(--spotify-white);
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .artist-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-decoration: none;
+            color: var(--spotify-white);
+        }
+        
+        .artist-item:hover {
+            background-color: #3e3e3e;
+        }
+        
+        .artist-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+        
+        .artist-info {
+            flex-grow: 1;
+        }
+        
+        .artist-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .artist-count {
+            color: var(--spotify-light-gray);
+            font-size: 0.9rem;
+        }
+        
+        .back-btn {
+            margin-top: 20px;
+            align-self: center;
+        }
+        
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            padding: 20px;
+            color: var(--spotify-light-gray);
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .genres-container {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .genres-container {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .btn {
+                padding: 12px 24px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <svg class="logo" viewBox="0 0 1134 340" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#1ED760" d="M8 171c0 92 76 168 168 168s168-76 168-168S268 4 176 4 8 79 8 171zm230 78c-39-24-89-30-147-17-14 2-16-18-4-20 64-15 118-8 162 19 11 7 0 24-11 18zm17-45c-45-28-114-36-167-20-17 5-23-21-7-25 61-18 136-9 188 23 14 9 0 31-14 22zM80 133c-17 6-28-23-9-30 59-18 159-15 221 22 17 9 1 37-17 27-54-32-144-35-195-19zm379 91c-17 0-33-6-47-20-1 0-1 1-1 1l-16 19c-1 1-1 2 0 3 18 16 40 24 64 24 34 0 55-19 55-47 0-24-15-37-50-46-29-7-34-12-34-22s10-16 23-16 25 5 39 15c0 0 1 1 2 1s1-1 1-1l14-20c1-1 1-1 0-2-16-13-35-20-56-20-31 0-53 19-53 46 0 29 20 38 52 46 28 6 32 12 32 22 0 11-10 17-25 17zm95-77v-13c0-1-1-2-2-2h-26c-1 0-2 1-2 2v147c0 1 1 2 2 2h26c1 0 2-1 2-2v-46c10 11 21 16 36 16 27 0 54-21 54-61s-27-60-54-60c-15 0-26 5-36 17zm30 78c-18 0-31-15-31-35s13-34 31-34 30 14 30 34-12 35-30 35zm68-34c0 34 27 60 62 60s62-27 62-61-26-60-61-60-63 27-63 61zm30-1c0-20 13-34 32-34s33 15 33 35-13 34-32 34-33-15-33-35zm140-58v-29c0-1 0-2-1-2h-26c-1 0-2 1-2 2v29h-13c-1 0-2 1-2 2v22c0 1 1 2 2 2h13v58c0 23 11 35 34 35 9 0 18-2 25-6 1 0 1-1 1-2v-21c0-1 0-2-1-2h-2c-5 3-11 4-16 4-8 0-12-4-12-12v-54h30c1 0 2-1 2-2v-22c0-1-1-2-2-2h-30zm129-3c0-11 4-15 13-15 5 0 10 0 15 2h1s1-1 1-2V93c0-1 0-2-1-2-5-2-12-3-22-3-24 0-36 14-36 39v5h-13c-1 0-2 1-2 2v22c0 1 1 2 2 2h13v89c0 1 1 2 2 2h26c1 0 1-1 1-2v-89h25l37 89c-4 9-8 11-14 11-5 0-10-1-15-4h-1l-1 1-9 19c0 1 0 3 1 3 9 5 17 7 27 7 19 0 30-9 39-33l45-116v-2c0-1-1-1-2-1h-27c-1 0-1 1-1 2l-28 78-30-78c0-1-1-2-2-2h-44v-3zm-83 3c-1 0-2 1-2 2v113c0 1 1 2 2 2h26c1 0 1-1 1-2V134c0-1 0-2-1-2h-26zm-6-33c0 10 9 19 19 19s18-9 18-19-8-18-18-18-19 8-19 18zm245 69c10 0 19-8 19-18s-9-18-19-18-18 8-18 18 8 18 18 18zm0-34c9 0 17 7 17 16s-8 16-17 16-16-7-16-16 7-16 16-16zm4 18c3-1 5-3 5-6 0-4-4-6-8-6h-8v19h4v-6h4l4 6h5zm-3-9c2 0 4 1 4 3s-2 3-4 3h-4v-6h4z"/>
+        </svg>
+        <h1>Explorador de Gêneros Musicais</h1>
+    </header>
+    
+    <div class="login-container" id="login-container">
+        <button id="login-button" class="btn">Login com Spotify</button>
+    </div>
+    
+    <div id="main-content">
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <div class="progress-text" id="progress-text">Carregando dados...</div>
+        </div>
+        
+        <div class="genres-container" id="genres-container"></div>
+        
+        <div class="artists-list" id="artists-list">
+            <div class="artists-header">
+                <h2 id="selected-genre">Gênero</h2>
+                <button class="close-btn" id="close-artists">&times;</button>
+            </div>
+            <div id="artists-container"></div>
+        </div>
+    </div>
+    
+    <footer>
+        &copy; 2025 Spotify Gêneros Explorer - Conecte-se à sua biblioteca do Spotify
+    </footer>
+
+    <script>
+        const clientId = 'cdbe0b644b984a6e98839e352d87bb3d';
+        const redirectUri = window.location.href.split('#')[0];
+        
+        // Elementos DOM
+        const loginContainer = document.getElementById('login-container');
+        const mainContent = document.getElementById('main-content');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const genresContainer = document.getElementById('genres-container');
+        const artistsList = document.getElementById('artists-list');
+        const selectedGenre = document.getElementById('selected-genre');
+        const artistsContainer = document.getElementById('artists-container');
+        const loginButton = document.getElementById('login-button');
+        const closeArtistsButton = document.getElementById('close-artists');
+        
+        // Armazenamento de dados
+        let savedTracks = [];
+        let artistsData = {};
+        let genresSet = new Set();
+        let genreArtistsMap = {};
+        
+        // Autenticação Spotify
+        function authorizeSpotify() {
+            const scope = 'user-library-read';
+            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+            window.location.href = authUrl;
+        }
+        
+        // Checar token de acesso na URL
+        function checkAuth() {
+            const hash = window.location.hash;
+            if (hash) {
+                const match = hash.match(/access_token=([^&]*)/);
+                if (match) {
+                    const accessToken = match[1];
+                    localStorage.setItem('spotify_access_token', accessToken);
+                    window.location.hash = '';
+                    initApp(accessToken);
+                    return true;
+                }
+            }
+            
+            const storedToken = localStorage.getItem('spotify_access_token');
+            if (storedToken) {
+                initApp(storedToken);
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Iniciar aplicação após autenticação
+        function initApp(accessToken) {
+            loginContainer.style.display = 'none';
+            mainContent.style.display = 'flex';
+            fetchSavedTracks(accessToken);
+        }
+        
+        // Atualizar barra de progresso
+        function updateProgress(percent, message) {
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = message;
+        }
+        
+        // Buscar músicas salvas do usuário
+        function fetchSavedTracks(accessToken, offset = 0) {
+            updateProgress(10, `Carregando músicas salvas (${offset} de ???)...`);
+            
+            const limit = 50;
+            fetch(`https://api.spotify.com/v1/me/tracks?limit=${limit}&offset=${offset}`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem('spotify_access_token');
+                        loginContainer.style.display = 'flex';
+                        mainContent.style.display = 'none';
+                        throw new Error('Token expirado. Faça login novamente.');
+                    }
+                    throw new Error('Erro ao buscar músicas salvas');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tracks = data.items.map(item => ({
+                    id: item.track.id,
+                    name: item.track.name,
+                    artists: item.track.artists.map(artist => ({
+                        id: artist.id,
+                        name: artist.name,
+                        uri: artist.uri
+                    }))
+                }));
+                
+                savedTracks = savedTracks.concat(tracks);
+                
+                const progress = Math.min(25, (offset / (data.total + 1)) * 25);
+                updateProgress(progress, `Carregando músicas salvas (${offset + tracks.length} de ${data.total})...`);
+                
+                if (data.next) {
+                    fetchSavedTracks(accessToken, offset + limit);
+                } else {
+                    collectArtists(accessToken);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                updateProgress(100, `Erro: ${error.message}`);
+            });
+        }
+        
+        // Coletar artistas únicos das músicas salvas
+        function collectArtists(accessToken) {
+            updateProgress(25, 'Processando artistas...');
+            
+            const uniqueArtists = new Map();
+            
+            savedTracks.forEach(track => {
+                track.artists.forEach(artist => {
+                    if (uniqueArtists.has(artist.id)) {
+                        uniqueArtists.get(artist.id).count++;
+                    } else {
+                        uniqueArtists.set(artist.id, {
+                            id: artist.id,
+                            name: artist.name,
+                            uri: artist.uri,
+                            count: 1
+                        });
+                    }
+                });
+            });
+            
+            artistsData = Object.fromEntries(uniqueArtists);
+            
+            const artistIds = Array.from(uniqueArtists.keys());
+            fetchArtistsGenres(accessToken, artistIds, 0);
+        }
+        
+        // Buscar gêneros de artistas em lotes
+        function fetchArtistsGenres(accessToken, artistIds, startIdx) {
+            const batchSize = 50;
+            const endIdx = Math.min(startIdx + batchSize, artistIds.length);
+            const batch = artistIds.slice(startIdx, endIdx);
+            
+            if (batch.length === 0) {
+                processGenres();
+                return;
+            }
+            
+            const progress = 25 + (startIdx / artistIds.length) * 50;
+            updateProgress(progress, `Buscando gêneros dos artistas (${startIdx} de ${artistIds.length})...`);
+            
+            fetch(`https://api.spotify.com/v1/artists?ids=${batch.join(',')}`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar detalhes dos artistas');
+                }
+                return response.json();
+            })
+            .then(data => {
+                data.artists.forEach(artist => {
+                    if (artistsData[artist.id]) {
+                        artistsData[artist.id].genres = artist.genres;
+                        artistsData[artist.id].images = artist.images;
+                        
+                        // Adicionar gêneros ao conjunto e mapeamento
+                        artist.genres.forEach(genre => {
+                            genresSet.add(genre);
+                            
+                            if (!genreArtistsMap[genre]) {
+                                genreArtistsMap[genre] = [];
+                            }
+                            
+                            genreArtistsMap[genre].push(artist.id);
+                        });
+                    }
+                });
+                
+                fetchArtistsGenres(accessToken, artistIds, endIdx);
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                updateProgress(100, `Erro: ${error.message}`);
+            });
+        }
+        
+        // Processar gêneros e exibir na interface
+        function processGenres() {
+            updateProgress(90, 'Processando dados...');
+            
+            const genresArray = Array.from(genresSet);
+            let selectedGenres = [];
+            
+            if (genresArray.length <= 6) {
+                selectedGenres = genresArray;
+            } else {
+                // Embaralhar e selecionar 6 gêneros aleatórios
+                const shuffled = genresArray.sort(() => 0.5 - Math.random());
+                selectedGenres = shuffled.slice(0, 6);
+            }
+            
+            // Limpar e preencher o container de gêneros
+            genresContainer.innerHTML = '';
+            
+            selectedGenres.forEach(genre => {
+                const genreCard = document.createElement('div');
+                genreCard.classList.add('genre-card');
+                genreCard.innerHTML = `<h3 class="genre-name">${genre}</h3>`;
+                
+                genreCard.addEventListener('click', () => {
+                    showArtistsByGenre(genre);
+                });
+                
+                genresContainer.appendChild(genreCard);
+            });
+            
+            updateProgress(100, 'Dados carregados com sucesso!');
+            
+            // Esconder barra de progresso após 2 segundos
+            setTimeout(() => {
+                document.querySelector('.progress-container').style.display = 'none';
+            }, 2000);
+        }
+        
+        // Exibir artistas por gênero
+        function showArtistsByGenre(genre) {
+            selectedGenre.textContent = genre;
+            artistsContainer.innerHTML = '';
+            
+            const artistsInGenre = genreArtistsMap[genre] || [];
+            
+            // Ordenar artistas por número de músicas (do maior para o menor)
+            const sortedArtists = artistsInGenre
+                .map(id => artistsData[id])
+                .sort((a, b) => b.count - a.count);
+            
+            sortedArtists.forEach(artist => {
+                const imageUrl = artist.images && artist.images.length > 0 
+                    ? artist.images[artist.images.length - 1].url 
+                    : '/api/placeholder/50/50';
+                
+                const artistElement = document.createElement('a');
+                artistElement.classList.add('artist-item');
+                artistElement.href = artist.uri;
+                artistElement.innerHTML = `
+                    <img class="artist-image" src="${imageUrl}" alt="${artist.name}">
+                    <div class="artist-info">
+                        <div class="artist-name">${artist.name}</div>
+                        <div class="artist-count">${artist.count} música${artist.count > 1 ? 's' : ''}</div>
+                    </div>
+                `;
+                
+                artistsContainer.appendChild(artistElement);
+            });
+            
+            artistsList.style.display = 'block';
+        }
+        
+        // Event Listeners
+        loginButton.addEventListener('click', authorizeSpotify);
+        
+        closeArtistsButton.addEventListener('click', () => {
+            artistsList.style.display = 'none';
+        });
+        
+        // Inicializar
+        if (!checkAuth()) {
+            loginContainer.style.display = 'flex';
+            mainContent.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
