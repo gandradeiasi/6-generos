@@ -199,6 +199,7 @@
         .back-btn {
             margin-top: 20px;
             align-self: center;
+            display: none;
         }
         
         footer {
@@ -261,6 +262,7 @@
                 <button class="close-btn" id="close-artists">&times;</button>
             </div>
             <div id="artists-container"></div>
+            <button id="back-to-genres" class="btn back-btn">Voltar aos Gêneros</button>
         </div>
     </div>
     
@@ -283,6 +285,7 @@
         const artistsContainer = document.getElementById('artists-container');
         const loginButton = document.getElementById('login-button');
         const closeArtistsButton = document.getElementById('close-artists');
+        const backToGenresButton = document.getElementById('back-to-genres');
         
         // Armazenamento de dados
         let savedTracks = [];
@@ -291,6 +294,7 @@
         let genreArtistsMap = {};
         let totalTracks = 0;
         let totalArtists = 0;
+        let artistsWithoutGenre = [];
         
         // Autenticação Spotify
         function authorizeSpotify() {
@@ -467,6 +471,7 @@
             const batch = artistIds.slice(startIdx, endIdx);
             
             if (batch.length === 0) {
+                handleArtistsWithoutGenres();
                 processGenres();
                 return;
             }
@@ -491,19 +496,24 @@
             .then(data => {
                 data.artists.forEach(artist => {
                     if (artistsData[artist.id]) {
-                        artistsData[artist.id].genres = artist.genres;
+                        artistsData[artist.id].genres = artist.genres || [];
                         artistsData[artist.id].images = artist.images;
                         
-                        // Adicionar gêneros ao conjunto e mapeamento
-                        artist.genres.forEach(genre => {
-                            genresSet.add(genre);
-                            
-                            if (!genreArtistsMap[genre]) {
-                                genreArtistsMap[genre] = [];
-                            }
-                            
-                            genreArtistsMap[genre].push(artist.id);
-                        });
+                        // Verificar se o artista tem gêneros
+                        if (!artist.genres || artist.genres.length === 0) {
+                            artistsWithoutGenre.push(artist.id);
+                        } else {
+                            // Adicionar gêneros ao conjunto e mapeamento
+                            artist.genres.forEach(genre => {
+                                genresSet.add(genre);
+                                
+                                if (!genreArtistsMap[genre]) {
+                                    genreArtistsMap[genre] = [];
+                                }
+                                
+                                genreArtistsMap[genre].push(artist.id);
+                            });
+                        }
                     }
                 });
                 
@@ -519,6 +529,16 @@
                 console.error('Erro:', error);
                 updateProgress(100, `Erro: ${error.message}`);
             });
+        }
+        
+        // Processar artistas sem gêneros
+        function handleArtistsWithoutGenres() {
+            if (artistsWithoutGenre.length > 0) {
+                // Adicionar "sem gênero" como um gênero e mapear artistas
+                const noGenreLabel = "sem gênero";
+                genresSet.add(noGenreLabel);
+                genreArtistsMap[noGenreLabel] = artistsWithoutGenre;
+            }
         }
         
         // Processar gêneros e exibir na interface
@@ -564,6 +584,11 @@
             selectedGenre.textContent = genre;
             artistsContainer.innerHTML = '';
             
+            // Esconder os gêneros e mostrar a lista de artistas
+            genresContainer.style.display = 'none';
+            artistsList.style.display = 'block';
+            backToGenresButton.style.display = 'block';
+            
             const artistsInGenre = genreArtistsMap[genre] || [];
             
             // Ordenar artistas por número de músicas (do maior para o menor)
@@ -589,16 +614,20 @@
                 
                 artistsContainer.appendChild(artistElement);
             });
-            
-            artistsList.style.display = 'block';
+        }
+        
+        // Voltar para a exibição de gêneros
+        function backToGenres() {
+            artistsList.style.display = 'none';
+            genresContainer.style.display = 'grid';
+            backToGenresButton.style.display = 'none';
         }
         
         // Event Listeners
         loginButton.addEventListener('click', authorizeSpotify);
         
-        closeArtistsButton.addEventListener('click', () => {
-            artistsList.style.display = 'none';
-        });
+        closeArtistsButton.addEventListener('click', backToGenres);
+        backToGenresButton.addEventListener('click', backToGenres);
         
         // Inicializar
         if (!checkAuth()) {
